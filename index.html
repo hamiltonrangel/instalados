@@ -1,48 +1,9 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Círculos de Secretarias</title>
+    <title>Cubos 3D de Secretarias</title>
     <style>
         body {
             display: flex;
@@ -56,14 +17,26 @@
         .container {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 25px;
+            gap: 30px;
             padding: 30px;
             max-width: 1300px;
         }
-        .circle {
+        .cube-container {
             width: 200px;
             height: 200px;
-            border-radius: 50%;
+            perspective: 600px;
+            will-change: transform;
+        }
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+        .cube-face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -74,127 +47,315 @@
             padding: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        .circle span {
+        .cube-face span {
             margin: 5px 0;
         }
         .name {
             font-weight: bold;
             font-size: 20px;
         }
-        .error {
-            color: red;
+        /* Animação de três pontinhos */
+        .loading::after {
+            content: '...';
+            display: inline-block;
+            width: 20px;
+            text-align: left;
+            animation: dots 1.5s infinite;
         }
-        /* Cores para os círculos */
-        .color-1 { background-color: #D4F4DD; } /* Menta Suave */
-        .color-2 { background-color: #D6E6F2; } /* Azul Claro */
-        .color-3 { background-color: #E6E6FA; } /* Lavanda Suave */
-        .color-4 { background-color: #FFE8D6; } /* Pêssego Claro */
-        .color-5 { background-color: #F5F5DC; } /* Creme Suave */
+        @keyframes dots {
+            0% { content: '...'; }
+            33% { content: '..'; }
+            66% { content: '.'; }
+        }
+        /* Posicionamento das faces */
+        .front {
+            transform: translateZ(100px);
+        }
+        .back {
+            transform: translateZ(-100px) rotateY(180deg);
+        }
+        .left {
+            transform: translateX(-100px) rotateY(-90deg);
+        }
+        .right {
+            transform: translateX(100px) rotateY(90deg);
+        }
+        .top {
+            transform: translateY(-100px) rotateX(90deg);
+        }
+        .bottom {
+            transform: translateY(100px) rotateX(-90deg);
+        }
+        /* Cores para as faces frontais */
+        .color-1 .front { background-color: #D4F4DD; } /* Menta Suave */
+        .color-2 .front { background-color: #D6E6F2; } /* Azul Claro */
+        .color-3 .front { background-color: #E6E6FA; } /* Lavanda Suave */
+        .color-4 .front { background-color: #FFE8D6; } /* Pêssego Claro */
+        .color-5 .front { background-color: #F5F5DC; } /* Creme Suave */
+        /* Cores mais escuras para outras faces */
+        .color-1 .back, .color-1 .left, .color-1 .right, .color-1 .top, .color-1 .bottom { background-color: #A8C7B0; }
+        .color-2 .back, .color-2 .left, .color-2 .right, .color-2 .top, .color-2 .bottom { background-color: #A9C4D8; }
+        .color-3 .back, .color-3 .left, .color-3 .right, .color-3 .top, .color-3 .bottom { background-color: #C5C5E0; }
+        .color-4 .back, .color-4 .left, .color-4 .right, .color-4 .top, .color-4 .bottom { background-color: #E6C7A8; }
+        .color-5 .back, .color-5 .left, .color-5 .right, .color-5 .top, .color-5 .bottom { background-color: #D8D8B0; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="circle color-1" id="sedes-circle">
-            <span class="name">SEDES</span>
-            <span id="sedes-desktop">Desktop: Carregando...</span>
-            <span id="sedes-notebook">Notebook: Carregando...</span>
-            <span id="sedes-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-1" id="sedes-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEDES</span>
+                    <span id="sedes-desktop">Desktop: Carregando...</span>
+                    <span id="sedes-notebook">Notebook: Carregando...</span>
+                    <span id="sedes-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-2" id="sesau-circle">
-            <span class="name">SESAU</span>
-            <span id="sesau-desktop">Desktop: Carregando...</span>
-            <span id="sesau-notebook">Notebook: Carregando...</span>
-            <span id="sesau-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-2" id="sesau-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SESAU</span>
+                    <span id="sesau-desktop">Desktop: Carregando...</span>
+                    <span id="sesau-notebook">Notebook: Carregando...</span>
+                    <span id="sesau-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-3" id="sefaz-circle">
-            <span class="name">SEFAZ</span>
-            <span id="sefaz-desktop">Desktop: Carregando...</span>
-            <span id="sefaz-notebook">Notebook: Carregando...</span>
-            <span id="sefaz-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-3" id="sefaz-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEFAZ</span>
+                    <span id="sefaz-desktop">Desktop: Carregando...</span>
+                    <span id="sefaz-notebook">Notebook: Carregando...</span>
+                    <span id="sefaz-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-4" id="seduc-circle">
-            <span class="name">SEDUC</span>
-            <span id="seduc-desktop">Desktop: Carregando...</span>
-            <span id="seduc-notebook">Notebook: Carregando...</span>
-            <span id="seduc-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-4" id="seduc-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEDUC</span>
+                    <span id="seduc-desktop">Desktop: Carregando...</span>
+                    <span id="seduc-notebook">Notebook: Carregando...</span>
+                    <span id="seduc-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-5" id="seo-circle">
-            <span class="name">SEO</span>
-            <span id="seo-desktop">Desktop: Carregando...</span>
-            <span id="seo-notebook">Notebook: Carregando...</span>
-            <span id="seo-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-5" id="seo-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEO</span>
+                    <span id="seo-desktop">Desktop: Carregando...</span>
+                    <span id="seo-notebook">Notebook: Carregando...</span>
+                    <span id="seo-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-1" id="sajur-circle">
-            <span class="name">SAJUR</span>
-            <span id="sajur-desktop">Desktop: Carregando...</span>
-            <span id="sajur-notebook">Notebook: Carregando...</span>
-            <span id="sajur-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-1" id="sajur-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SAJUR</span>
+                    <span id="sajur-desktop">Desktop: Carregando...</span>
+                    <span id="sajur-notebook">Notebook: Carregando...</span>
+                    <span id="sajur-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-2" id="secad-circle">
-            <span class="name">SECAD</span>
-            <span id="secad-desktop">Desktop: Carregando...</span>
-            <span id="secad-notebook">Notebook: Carregando...</span>
-            <span id="secad-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-2" id="secad-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SECAD</span>
+                    <span id="secad-desktop">Desktop: Carregando...</span>
+                    <span id="secad-notebook">Notebook: Carregando...</span>
+                    <span id="secad-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-3" id="segur-circle">
-            <span class="name">SEGUR</span>
-            <span id="segur-desktop">Desktop: Carregando...</span>
-            <span id="segur-notebook">Notebook: Carregando...</span>
-            <span id="segur-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-3" id="segur-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEGUR</span>
+                    <span id="segur-desktop">Desktop: Carregando...</span>
+                    <span id="segur-notebook">Notebook: Carregando...</span>
+                    <span id="segur-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-4" id="setur-circle">
-            <span class="name">SETUR</span>
-            <span id="setur-desktop">Desktop: Carregando...</span>
-            <span id="setur-notebook">Notebook: Carregando...</span>
-            <span id="setur-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-4" id="setur-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SETUR</span>
+                    <span id="setur-desktop">Desktop: Carregando...</span>
+                    <span id="setur-notebook">Notebook: Carregando...</span>
+                    <span id="setur-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-5" id="sesep-circle">
-            <span class="name">SESEP</span>
-            <span id="sesep-desktop">Desktop: Carregando...</span>
-            <span id="sesep-notebook">Notebook: Carregando...</span>
-            <span id="sesep-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-5" id="sesep-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SESEP</span>
+                    <span id="sesep-desktop">Desktop: Carregando...</span>
+                    <span id="sesep-notebook">Notebook: Carregando...</span>
+                    <span id="sesep-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-1" id="semam-circle">
-            <span class="name">SEMAM</span>
-            <span id="semam-desktop">Desktop: Carregando...</span>
-            <span id="semam-notebook">Notebook: Carregando...</span>
-            <span id="semam-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-1" id="semam-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEMAM</span>
+                    <span id="semam-desktop">Desktop: Carregando...</span>
+                    <span id="semam-notebook">Notebook: Carregando...</span>
+                    <span id="semam-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-2" id="seurb-circle">
-            <span class="name">SEURB</span>
-            <span id="seurb-desktop">Desktop: Carregando...</span>
-            <span id="seurb-notebook">Notebook: Carregando...</span>
-            <span id="seurb-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-2" id="seurb-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEURB</span>
+                    <span id="seurb-desktop">Desktop: Carregando...</span>
+                    <span id="seurb-notebook">Notebook: Carregando...</span>
+                    <span id="seurb-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-3" id="sepedi-circle">
-            <span class="name">SEPEDI</span>
-            <span id="sepedi-desktop">Desktop: Carregando...</span>
-            <span id="sepedi-notebook">Notebook: Carregando...</span>
-            <span id="sepedi-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-3" id="sepedi-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEPEDI</span>
+                    <span id="sepedi-desktop">Desktop: Carregando...</span>
+                    <span id="sepedi-notebook">Notebook: Carregando...</span>
+                    <span id="sepedi-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-4" id="seesp-circle">
-            <span class="name">SEESP</span>
-            <span id="seesp-desktop">Desktop: Carregando...</span>
-            <span id="seesp-notebook">Notebook: Carregando...</span>
-            <span id="seesp-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-4" id="seesp-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEESP</span>
+                    <span id="seesp-desktop">Desktop: Carregando...</span>
+                    <span id="seesp-notebook">Notebook: Carregando...</span>
+                    <span id="seesp-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-5" id="segov-circle">
-            <span class="name">SEGOV</span>
-            <span id="segov-desktop">Desktop: Carregando...</span>
-            <span id="segov-notebook">Notebook: Carregando...</span>
-            <span id="segov-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-5" id="segov-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEGOV</span>
+                    <span id="segov-desktop">Desktop: Carregando...</span>
+                    <span id="segov-notebook">Notebook: Carregando...</span>
+                    <span id="segov-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-1" id="seplan-circle">
-            <span class="name">SEPLAN</span>
-            <span id="seplan-desktop">Desktop: Carregando...</span>
-            <span id="seplan-notebook">Notebook: Carregando...</span>
-            <span id="seplan-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-1" id="seplan-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEPLAN</span>
+                    <span id="seplan-desktop">Desktop: Carregando...</span>
+                    <span id="seplan-notebook">Notebook: Carregando...</span>
+                    <span id="seplan-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
-        <div class="circle color-2" id="sehab-circle">
-            <span class="name">SEHAB</span>
-            <span id="sehab-desktop">Desktop: Carregando...</span>
-            <span id="sehab-notebook">Notebook: Carregando...</span>
-            <span id="sehab-monitor">Monitor: Carregando...</span>
+        <div class="cube-container color-2" id="sehab-cube">
+            <div class="cube">
+                <div class="cube-face front">
+                    <span class="name">SEHAB</span>
+                    <span id="sehab-desktop">Desktop: Carregando...</span>
+                    <span id="sehab-notebook">Notebook: Carregando...</span>
+                    <span id="sehab-monitor">Monitor: Carregando...</span>
+                </div>
+                <div class="cube-face back"></div>
+                <div class="cube-face left"></div>
+                <div class="cube-face right"></div>
+                <div class="cube-face top"></div>
+                <div class="cube-face bottom"></div>
+            </div>
         </div>
     </div>
 
@@ -212,20 +373,20 @@
                 return json.table.rows[0]?.c[0]?.v || '--';
             } catch (error) {
                 console.error(`Erro ao buscar ${cell} para ${elementId}:`, error);
-                document.getElementById(elementId).classList.add('error');
-                return 'Erro';
+                document.getElementById(elementId).classList.add('loading');
+                return ''; // Retorna vazio para exibir a animação de pontinhos
             }
         }
 
-        async function updateCircleData(secretaria, row) {
+        async function updateCubeData(secretaria, row) {
             const [desktop, notebook, monitor] = await Promise.all([
                 fetchCell(spreadsheetId, sheetName, `L${row}`, `${secretaria}-desktop`),
                 fetchCell(spreadsheetId, sheetName, `M${row}`, `${secretaria}-notebook`),
                 fetchCell(spreadsheetId, sheetName, `N${row}`, `${secretaria}-monitor`)
             ]);
-            document.getElementById(`${secretaria}-desktop`).textContent = `Desktop: ${desktop}`;
-            document.getElementById(`${secretaria}-notebook`).textContent = `Notebook: ${notebook}`;
-            document.getElementById(`${secretaria}-monitor`).textContent = `Monitor: ${monitor}`;
+            document.getElementById(`${secretaria}-desktop`).textContent = `Desktop: ${desktop || '...'}`;
+            document.getElementById(`${secretaria}-notebook`).textContent = `Notebook: ${notebook || '...'}`;
+            document.getElementById(`${secretaria}-monitor`).textContent = `Monitor: ${monitor || '...'}`;
         }
 
         async function updateAllData() {
@@ -249,7 +410,7 @@
                 { name: 'sehab', row: 19 }
             ];
 
-            await Promise.all(secretarias.map(({ name, row }) => updateCircleData(name, row)));
+            await Promise.all(secretarias.map(({ name, row }) => updateCubeData(name, row)));
         }
 
         window.addEventListener('load', updateAllData);
