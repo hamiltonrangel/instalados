@@ -1,0 +1,259 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Círculos de Secretarias</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 25px;
+            padding: 30px;
+            max-width: 1300px;
+        }
+        .circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 16px;
+            color: #333;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .circle span {
+            margin: 5px 0;
+        }
+        .name {
+            font-weight: bold;
+            font-size: 20px;
+        }
+        .error {
+            color: red;
+        }
+        /* Cores para os círculos */
+        .color-1 { background-color: #D4F4DD; } /* Menta Suave */
+        .color-2 { background-color: #D6E6F2; } /* Azul Claro */
+        .color-3 { background-color: #E6E6FA; } /* Lavanda Suave */
+        .color-4 { background-color: #FFE8D6; } /* Pêssego Claro */
+        .color-5 { background-color: #F5F5DC; } /* Creme Suave */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="circle color-1" id="sedes-circle">
+            <span class="name">SEDES</span>
+            <span id="sedes-desktop">Desktop: Carregando...</span>
+            <span id="sedes-notebook">Notebook: Carregando...</span>
+            <span id="sedes-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-2" id="sesau-circle">
+            <span class="name">SESAU</span>
+            <span id="sesau-desktop">Desktop: Carregando...</span>
+            <span id="sesau-notebook">Notebook: Carregando...</span>
+            <span id="sesau-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-3" id="sefaz-circle">
+            <span class="name">SEFAZ</span>
+            <span id="sefaz-desktop">Desktop: Carregando...</span>
+            <span id="sefaz-notebook">Notebook: Carregando...</span>
+            <span id="sefaz-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-4" id="seduc-circle">
+            <span class="name">SEDUC</span>
+            <span id="seduc-desktop">Desktop: Carregando...</span>
+            <span id="seduc-notebook">Notebook: Carregando...</span>
+            <span id="seduc-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-5" id="seo-circle">
+            <span class="name">SEO</span>
+            <span id="seo-desktop">Desktop: Carregando...</span>
+            <span id="seo-notebook">Notebook: Carregando...</span>
+            <span id="seo-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-1" id="sajur-circle">
+            <span class="name">SAJUR</span>
+            <span id="sajur-desktop">Desktop: Carregando...</span>
+            <span id="sajur-notebook">Notebook: Carregando...</span>
+            <span id="sajur-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-2" id="secad-circle">
+            <span class="name">SECAD</span>
+            <span id="secad-desktop">Desktop: Carregando...</span>
+            <span id="secad-notebook">Notebook: Carregando...</span>
+            <span id="secad-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-3" id="segur-circle">
+            <span class="name">SEGUR</span>
+            <span id="segur-desktop">Desktop: Carregando...</span>
+            <span id="segur-notebook">Notebook: Carregando...</span>
+            <span id="segur-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-4" id="setur-circle">
+            <span class="name">SETUR</span>
+            <span id="setur-desktop">Desktop: Carregando...</span>
+            <span id="setur-notebook">Notebook: Carregando...</span>
+            <span id="setur-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-5" id="sesep-circle">
+            <span class="name">SESEP</span>
+            <span id="sesep-desktop">Desktop: Carregando...</span>
+            <span id="sesep-notebook">Notebook: Carregando...</span>
+            <span id="sesep-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-1" id="semam-circle">
+            <span class="name">SEMAM</span>
+            <span id="semam-desktop">Desktop: Carregando...</span>
+            <span id="semam-notebook">Notebook: Carregando...</span>
+            <span id="semam-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-2" id="seurb-circle">
+            <span class="name">SEURB</span>
+            <span id="seurb-desktop">Desktop: Carregando...</span>
+            <span id="seurb-notebook">Notebook: Carregando...</span>
+            <span id="seurb-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-3" id="sepedi-circle">
+            <span class="name">SEPEDI</span>
+            <span id="sepedi-desktop">Desktop: Carregando...</span>
+            <span id="sepedi-notebook">Notebook: Carregando...</span>
+            <span id="sepedi-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-4" id="seesp-circle">
+            <span class="name">SEESP</span>
+            <span id="seesp-desktop">Desktop: Carregando...</span>
+            <span id="seesp-notebook">Notebook: Carregando...</span>
+            <span id="seesp-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-5" id="segov-circle">
+            <span class="name">SEGOV</span>
+            <span id="segov-desktop">Desktop: Carregando...</span>
+            <span id="segov-notebook">Notebook: Carregando...</span>
+            <span id="segov-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-1" id="seplan-circle">
+            <span class="name">SEPLAN</span>
+            <span id="seplan-desktop">Desktop: Carregando...</span>
+            <span id="seplan-notebook">Notebook: Carregando...</span>
+            <span id="seplan-monitor">Monitor: Carregando...</span>
+        </div>
+        <div class="circle color-2" id="sehab-circle">
+            <span class="name">SEHAB</span>
+            <span id="sehab-desktop">Desktop: Carregando...</span>
+            <span id="sehab-notebook">Notebook: Carregando...</span>
+            <span id="sehab-monitor">Monitor: Carregando...</span>
+        </div>
+    </div>
+
+    <script>
+        const spreadsheetId = '1GQMsTsJ88XeW5HnqF_CLHlIq-jyPlg5kBqRpjwHoWY4';
+        const sheetName = 'INSTALADOS';
+
+        async function fetchCell(sheetId, sheetName, cell, elementId) {
+            try {
+                const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&range=${cell}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Erro na requisição');
+                const text = await response.text();
+                const json = JSON.parse(text.substr(47).slice(0, -2));
+                return json.table.rows[0]?.c[0]?.v || '--';
+            } catch (error) {
+                console.error(`Erro ao buscar ${cell} para ${elementId}:`, error);
+                document.getElementById(elementId).classList.add('error');
+                return 'Erro';
+            }
+        }
+
+        async function updateCircleData(secretaria, row) {
+            const [desktop, notebook, monitor] = await Promise.all([
+                fetchCell(spreadsheetId, sheetName, `L${row}`, `${secretaria}-desktop`),
+                fetchCell(spreadsheetId, sheetName, `M${row}`, `${secretaria}-notebook`),
+                fetchCell(spreadsheetId, sheetName, `N${row}`, `${secretaria}-monitor`)
+            ]);
+            document.getElementById(`${secretaria}-desktop`).textContent = `Desktop: ${desktop}`;
+            document.getElementById(`${secretaria}-notebook`).textContent = `Notebook: ${notebook}`;
+            document.getElementById(`${secretaria}-monitor`).textContent = `Monitor: ${monitor}`;
+        }
+
+        async function updateAllData() {
+            const secretarias = [
+                { name: 'sedes', row: 3 },
+                { name: 'sesau', row: 4 },
+                { name: 'sefaz', row: 5 },
+                { name: 'seduc', row: 6 },
+                { name: 'seo', row: 7 },
+                { name: 'sajur', row: 8 },
+                { name: 'secad', row: 9 },
+                { name: 'segur', row: 10 },
+                { name: 'setur', row: 11 },
+                { name: 'sesep', row: 12 },
+                { name: 'semam', row: 13 },
+                { name: 'seurb', row: 14 },
+                { name: 'sepedi', row: 15 },
+                { name: 'seesp', row: 16 },
+                { name: 'segov', row: 17 },
+                { name: 'seplan', row: 18 },
+                { name: 'sehab', row: 19 }
+            ];
+
+            await Promise.all(secretarias.map(({ name, row }) => updateCircleData(name, row)));
+        }
+
+        window.addEventListener('load', updateAllData);
+        setInterval(updateAllData, 30000); // Atualiza a cada 30 segundos
+    </script>
+</body>
+</html>
